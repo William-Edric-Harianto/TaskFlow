@@ -1,0 +1,72 @@
+<?php
+session_start();
+if (isset($_SESSION['user_id'])) {
+    header('Location: src/dashboard.php');
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Sistem Manajemen Tugas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+
+<nav class="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full">
+    <div class="text-2xl font-bold tracking-tighter">Task<span class="text-blue-500">Flow</span></div>
+    <div class="flex gap-4">
+        <a href="src/login.php" class="text-gray-300 hover:text-white font-medium py-2 px-4 transition">Masuk</a>
+        <a href="src/register.php" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-6 rounded-full transition shadow-lg shadow-blue-500/30">Daftar</a>
+    </div>
+</nav>
+
+<main class="flex-grow flex items-center justify-center px-6">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div>
+            <span class="inline-block py-1 px-3 rounded-full bg-blue-500/10 text-blue-400 text-sm font-semibold mb-6">Sistem Manajemen Tugas</span>
+            <h1 class="text-5xl md:text-6xl font-bold leading-tight mb-6">Kelola Proyek & Tugas <br><span class="text-gray-400">Lebih Teratur</span></h1>
+            <p class="text-gray-400 text-lg mb-8 leading-relaxed">TaskFlow membantu tim Anda membuat proyek, menetapkan tugas, memantau progres, dan berkolaborasi lewat komentar - semua dalam satu tempat.</p>
+            <div class="flex gap-4">
+                <a href="src/register.php" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-8 rounded-lg transition duration-200">Mulai Gratis</a>
+                <a href="src/login.php" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-semibold py-3 px-8 rounded-lg transition duration-200">Sudah Punya Akun?</a>
+            </div>
+        </div>
+        
+        <div class="hidden md:block relative">
+            <div class="absolute inset-0 bg-blue-500 blur-3xl opacity-20 rounded-full"></div>
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 relative transform rotate-2 hover:rotate-0 transition duration-500">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold">A</div>
+                    <div>
+                        <div class="font-bold">Redesign App</div>
+                        <div class="text-xs text-gray-400">3 Tugas Aktif</div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center">
+                        <span class="text-sm">Buat Mockup UI</span>
+                        <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">In Progress</span>
+                    </div>
+                    <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center opacity-50">
+                        <span class="text-sm line-through">Setup Database</span>
+                        <span class="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded">Done</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="py-8 text-center text-gray-500 text-sm">
+    &copy; 2026 TaskFlow. All rights reserved.
+</footer>
+
+</body>
+</html>
