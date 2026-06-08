@@ -75,11 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_project'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_project'])) {
     $pdo->beginTransaction();
     try {
-        // 1. Set user_project to NULL in users
-        $stmt = $pdo->prepare("UPDATE users SET user_project = NULL WHERE user_project = ?");
-        $stmt->execute([$project_id]);
-
-        // 2. Delete notes related to tasks of the project
+        // 1. Delete notes related to tasks of the project
         $stmt = $pdo->prepare("DELETE FROM note WHERE task_id IN (SELECT task_id FROM task WHERE project_id = ?)");
         $stmt->execute([$project_id]);
 
@@ -107,6 +103,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_project'])) {
         $error = "Gagal menghapus proyek: " . $e->getMessage();
     }
 }
+
+// Handle User Invite
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['invite_user'])) {
+    $username_to_invite = $_POST['username'];
+    
+    $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = ?");
+    $stmt->execute([$username_to_invite]);
+    $invited_user = $stmt->fetch();
+    
+    if ($invited_user) {
+        $invited_user_id = $invited_user['user_id'];
+        
+        // Check if already in project
+        $stmt_check = $pdo->prepare("SELECT * FROM users_project WHERE user_id = ? AND project_id = ?");
+        $stmt_check->execute([$invited_user_id, $project_id]);
+        if (!$stmt_check->fetch()) {
+            $stmt_insert = $pdo->prepare("INSERT INTO users_project (user_id, project_id) VALUES (?, ?)");
+            $stmt_insert->execute([$invited_user_id, $project_id]);
+            
+            // Also add activity
+            $stmt_act = $pdo->prepare("INSERT INTO Activity (action, date, time, project_id, user_id) VALUES (?, CURDATE(), CURTIME(), ?, ?)");
+            $stmt_act->execute(["Invited User $username_to_invite", $project_id, $user_id]);
+            
+            $success = "User berhasil diundang ke proyek.";
+        } else {
+            $error = "User sudah ada di proyek ini.";
+        }
+    } else {
+        $error = "Username tidak ditemukan.";
+    }
+}
+
+// Get Project Members
+$stmt = $pdo->prepare("SELECT u.name, u.username FROM users u JOIN users_project up ON u.user_id = up.user_id WHERE up.project_id = ?");
+$stmt->execute([$project_id]);
+$members = $stmt->fetchAll();
 
 // Get Tasks
 $stmt = $pdo->prepare("SELECT * FROM Task WHERE project_id = ? ORDER BY task_id DESC");
@@ -157,11 +189,22 @@ foreach ($tasks as $task) {
                 <button onclick="document.getElementById('modal-edit-project').classList.remove('hidden')" class="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-semibold transition">
                     Edit Proyek
                 </button>
+                <button onclick="document.getElementById('modal-invite-user').classList.remove('hidden')" class="text-sm bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-lg font-semibold transition">
+                    Invite User
+                </button>
                 <button onclick="if(confirm('Apakah Anda yakin ingin menghapus proyek ini beserta seluruh tugas, catatan, dan aktivitas di dalamnya?')) { document.getElementById('delete-project-form').submit(); }" class="text-sm bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-semibold transition">
                     Hapus Proyek
                 </button>
             </div>
             <p class="text-gray-500 max-w-2xl"><?= htmlspecialchars($project['description']) ?></p>
+            <div class="flex items-center gap-2 mt-3 flex-wrap">
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Anggota:</span>
+                <?php foreach ($members as $member): ?>
+                    <span class="inline-flex items-center bg-gray-100 border border-gray-200 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium" title="<?= htmlspecialchars($member['name']) ?>">
+                        <?= htmlspecialchars($member['username']) ?>
+                    </span>
+                <?php endforeach; ?>
+            </div>
         </div>
         <div class="flex gap-3">
             <button onclick="document.getElementById('modal').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition whitespace-nowrap">
@@ -172,6 +215,9 @@ foreach ($tasks as $task) {
 
     <?php if (isset($error)): ?>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"><?= $error ?></div>
+    <?php endif; ?>
+    <?php if (isset($success)): ?>
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"><?= $success ?></div>
     <?php endif; ?>
 
     <div class="flex flex-col md:flex-row gap-6">
@@ -278,6 +324,27 @@ foreach ($tasks as $task) {
             <div class="flex justify-end gap-3">
                 <button type="button" onclick="document.getElementById('modal-edit-project').classList.add('hidden')" class="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition">Batal</button>
                 <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Invite User -->
+<div id="modal-invite-user" class="fixed inset-0 bg-gray-900/50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Invite User ke Proyek</h3>
+            <button onclick="document.getElementById('modal-invite-user').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form method="POST">
+            <input type="hidden" name="invite_user" value="1">
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" name="username" placeholder="Masukkan username user" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('modal-invite-user').classList.add('hidden')" class="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition">Invite</button>
             </div>
         </form>
     </div>
